@@ -9,6 +9,7 @@ A Cloudflare Worker that provides inspirational quotes from Ray via Slack slash 
   - 🎲 **Shuffle** - Get a different rayfirmation
   - 💫 **Rayfirm** - Share the rayfirmation with the entire channel
 - **Usage Tracking**: Persistent storage of total rayfirmations shared using Cloudflare KV
+- **Database Storage**: All rayfirmations stored in Cloudflare D1 database for scalability
 - **Ephemeral Responses**: Private interactions with public sharing option
 
 ## Setup
@@ -40,7 +41,19 @@ cd rayfirmations
    wrangler kv:namespace create "TOTAL_COUNT"
    ```
 
-3. **Configure wrangler.toml** (create this file):
+3. **Create D1 Database**:
+
+   ```bash
+   wrangler d1 create rayfirmations-db
+   ```
+
+4. **Apply Database Schema**:
+
+   ```bash
+   wrangler d1 execute rayfirmations-db --file=./schema.sql
+   ```
+
+5. **Configure wrangler.toml** (update the file with your IDs):
 
    ```toml
    name = "rayfirmations"
@@ -50,6 +63,12 @@ cd rayfirmations
    [[kv_namespaces]]
    binding = "TOTAL_COUNT"
    id = "your-kv-namespace-id"
+   preview_id = "your-preview-kv-namespace-id"
+
+   [[d1_databases]]
+   binding = "RAYDB"
+   database_name = "rayfirmations-db"
+   database_id = "your-d1-database-id"
    ```
 
 ### 3. Deploy to Cloudflare
@@ -99,7 +118,21 @@ wrangler deploy
 
 - **Cloudflare Workers**: Serverless edge computing
 - **Cloudflare KV**: Persistent storage for usage tracking
+- **Cloudflare D1**: SQLite database for storing rayfirmations
 - **Slack API**: Interactive components and slash commands
+
+## Database Schema
+
+The D1 database contains a single table:
+
+```sql
+CREATE TABLE rayfirmations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    quote TEXT NOT NULL UNIQUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
 
 ## Development
 
@@ -113,6 +146,19 @@ npm install
 wrangler dev
 ```
 
+### Database Management
+
+```bash
+# View database contents
+wrangler d1 execute rayfirmations-db --command="SELECT * FROM rayfirmations LIMIT 5;"
+
+# Add new rayfirmation
+wrangler d1 execute rayfirmations-db --command="INSERT INTO rayfirmations (quote) VALUES ('Your new rayfirmation here!');"
+
+# Get total count
+wrangler d1 execute rayfirmations-db --command="SELECT COUNT(*) as total FROM rayfirmations;"
+```
+
 ### Testing
 
 The bot can be tested using tools like:
@@ -123,6 +169,7 @@ The bot can be tested using tools like:
 ## Environment Variables
 
 - `TOTAL_COUNT` - KV namespace for tracking usage statistics
+- `RAYDB` - D1 database for storing rayfirmations
 
 ## Contributing
 
