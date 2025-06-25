@@ -1,19 +1,19 @@
 -- Rayfirmations D1 Database Schema
 -- This file contains the SQL schema for storing rayfirmation quotes
 
--- Create the rayfirmations table
-CREATE TABLE IF NOT EXISTS rayfirmations (
+-- Create the quotes table
+CREATE TABLE IF NOT EXISTS quotes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    quote TEXT NOT NULL UNIQUE,
+    text TEXT NOT NULL UNIQUE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create an index on the quote for faster lookups
-CREATE INDEX IF NOT EXISTS idx_rayfirmations_quote ON rayfirmations(quote);
+-- Create an index on the text for faster lookups
+CREATE INDEX IF NOT EXISTS idx_quotes_text ON quotes(text);
 
 -- Insert all the rayfirmation quotes
-INSERT OR IGNORE INTO rayfirmations (quote) VALUES
+INSERT OR IGNORE INTO quotes (text) VALUES
     ("Wow! Everything you do turns to gold!✨"),
     ("Wow! You are looking awesome today."),
     ("This is the best company in the world. And it is made better by you being here!"),
@@ -80,7 +80,7 @@ INSERT OR IGNORE INTO rayfirmations (quote) VALUES
     ("You are all A++++"),
     ("Keep it up. You are awesome!"),
     ("You are like a smart swiss army knife. You have a solution for everything. Innovation at its best!"),
-    ("Have I told you 'I love you lately?'"),
+    ("Have I told you 'I love you' lately?"),
     ("I love all you professors. You make my life better."),
     ("You're an angel."),
     ("TeamGantt is a vacation!"),

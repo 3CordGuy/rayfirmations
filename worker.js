@@ -42,7 +42,7 @@ export default {
     async function getRayfirmationsCount() {
       try {
         const result = await env.RAYDB.prepare(
-          "SELECT COUNT(*) as count FROM rayfirmations"
+          "SELECT COUNT(*) as count FROM quotes"
         ).first();
         return result ? result.count : 0;
       } catch (error) {
@@ -55,9 +55,9 @@ export default {
     async function getRandomRayfirmation() {
       try {
         const result = await env.RAYDB.prepare(
-          "SELECT quote FROM rayfirmations ORDER BY RANDOM() LIMIT 1"
+          "SELECT text FROM quotes ORDER BY RANDOM() LIMIT 1"
         ).first();
-        return result ? result.quote : "You are awesome!";
+        return result ? result.text : "You are awesome!";
       } catch (error) {
         console.error("Error getting random rayfirmation from D1:", error);
         return "You are awesome!";
@@ -181,7 +181,7 @@ export default {
                     type: "section",
                     text: {
                       type: "mrkdwn",
-                      text: `> "${currentRayfirmation}"`,
+                      text: `_${currentRayfirmation}_`,
                     },
                   },
                   {
@@ -189,7 +189,7 @@ export default {
                     elements: [
                       {
                         type: "mrkdwn",
-                        text: `Rayfirmed by <@${interactionData.user.id}> • Total rayfirmations shared: ${newTotalCount}`,
+                        text: `Rayfirmed by <@${interactionData.user.id}>`,
                       },
                     ],
                   },

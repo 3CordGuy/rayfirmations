@@ -112,7 +112,7 @@ wrangler deploy
 ### Response Types
 
 - **Ephemeral**: Initial responses are private to the user
-- **In-Channel**: When "Rayfirm" is clicked, the message is shared publicly
+- **In-Channel**: When "Rayfirm" is clicked, the message is shared publicly with italic formatting
 
 ## Architecture
 
@@ -126,9 +126,9 @@ wrangler deploy
 The D1 database contains a single table:
 
 ```sql
-CREATE TABLE rayfirmations (
+CREATE TABLE quotes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    quote TEXT NOT NULL UNIQUE,
+    text TEXT NOT NULL UNIQUE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -150,13 +150,13 @@ wrangler dev
 
 ```bash
 # View database contents
-wrangler d1 execute rayfirmations-db --command="SELECT * FROM rayfirmations LIMIT 5;"
+wrangler d1 execute rayfirmations-db --command="SELECT * FROM quotes LIMIT 5;"
 
 # Add new rayfirmation
-wrangler d1 execute rayfirmations-db --command="INSERT INTO rayfirmations (quote) VALUES ('Your new rayfirmation here!');"
+wrangler d1 execute rayfirmations-db --command="INSERT INTO quotes (text) VALUES ('Your new rayfirmation here!');"
 
 # Get total count
-wrangler d1 execute rayfirmations-db --command="SELECT COUNT(*) as total FROM rayfirmations;"
+wrangler d1 execute rayfirmations-db --command="SELECT COUNT(*) as total FROM quotes;"
 ```
 
 ### Testing
