@@ -16,26 +16,7 @@ export default {
 
     // Helper function to get total count from KV
     async function getTotalCount() {
-      try {
-        const count = await env.TOTAL_COUNT.get("TOTAL_COUNT");
-        return count ? parseInt(count, 10) : 0;
-      } catch (error) {
-        console.error("Error getting total count from KV:", error);
-        return 0;
-      }
-    }
-
-    // Helper function to increment total count in KV
-    async function incrementTotalCount() {
-      try {
-        const currentCount = await getTotalCount();
-        const newCount = currentCount + 1;
-        await env.TOTAL_COUNT.put("TOTAL_COUNT", newCount.toString());
-        return newCount;
-      } catch (error) {
-        console.error("Error incrementing total count in KV:", error);
-        return 0;
-      }
+      return await getTotalRayfirmShares();
     }
 
     // Helper function to get total count of rayfirmations from D1
