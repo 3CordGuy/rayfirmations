@@ -64,9 +64,29 @@ export default {
       }
     }
 
+    // Helper function to get last N quotes with contributor
+    async function getLastQuotesWithContributors(limit = 5) {
+      try {
+        const results = await env.RAYDB.prepare(
+          `SELECT text, added_by_id, added_at FROM quotes ORDER BY added_at DESC LIMIT ?`
+        )
+          .bind(limit)
+          .all();
+        return results.results || [];
+      } catch (error) {
+        console.error("Error getting last quotes from D1:", error);
+        return [];
+      }
+    }
+
     // Helper function to create stats blocks
-    function createStatsBlocks(userName, totalShared, totalQuotes) {
-      return [
+    function createStatsBlocks(
+      userName,
+      totalShared,
+      totalQuotes,
+      lastQuotes = []
+    ) {
+      const blocks = [
         {
           type: "header",
           text: {
@@ -90,69 +110,42 @@ export default {
             },
           ],
         },
-        {
-          type: "context",
-          elements: [
-            {
-              type: "mrkdwn",
-              text: `Requested by @${userName}`,
-            },
-          ],
-        },
       ];
-    }
 
-    // Helper function to create new quote modal
-    function createNewQuoteModal(triggerId) {
-      return {
-        trigger_id: triggerId,
-        view: {
-          type: "modal",
-          title: {
-            type: "plain_text",
-            text: "Add New Rayfirmation",
-            emoji: true,
+      if (lastQuotes.length) {
+        blocks.push({
+          type: "divider",
+        });
+        blocks.push({
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: "*Last 5 Added Rayfirmations:*",
           },
-          submit: {
-            type: "plain_text",
-            text: "Add Quote",
-            emoji: true,
-          },
-          close: {
-            type: "plain_text",
-            text: "Cancel",
-            emoji: true,
-          },
-          blocks: [
-            {
-              type: "section",
-              text: {
-                type: "mrkdwn",
-                text: "Share a new inspirational quote from Ray to add to the collection! ✨",
-              },
+        });
+        lastQuotes.forEach((q, i) => {
+          blocks.push({
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: `${i + 1}. _${q.text}_  —  recorded by ${
+                q.added_by_id === "system" ? "system" : `<@${q.added_by_id}>`
+              }`,
             },
-            {
-              type: "input",
-              block_id: "quote_input",
-              element: {
-                type: "plain_text_input",
-                action_id: "quote_text",
-                placeholder: {
-                  type: "plain_text",
-                  text: "Enter your rayfirmation here...",
-                },
-                multiline: true,
-                max_length: 500,
-              },
-              label: {
-                type: "plain_text",
-                text: "Rayfirmation",
-                emoji: true,
-              },
-            },
-          ],
-        },
-      };
+          });
+        });
+      }
+
+      blocks.push({
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: `Requested by @${userName}`,
+          },
+        ],
+      });
+      return blocks;
     }
 
     // Helper function to add new quote to database
@@ -376,10 +369,8 @@ export default {
             });
           }
 
-          const cleanedQuote = newQuote.replace(/["'“”‘’]/g, "").trim();
-          console.log("Original newQuote:", newQuote);
-          console.log("Cleaned quote (removing quotes):", cleanedQuote);
-          console.log("Storing quote in database:", cleanedQuote);
+          const cleanedQuote = newQuote.replace(/["'""']/g, "").trim();
+
           const success = await addNewQuote(cleanedQuote, userId);
 
           if (success) {
@@ -400,11 +391,17 @@ export default {
         if (text.trim().toLowerCase() === "stats") {
           const totalShared = await getTotalCount();
           const totalQuotes = await getRayfirmationsCount();
+          const lastQuotes = await getLastQuotesWithContributors(5);
 
           return Response.json({
             response_type: "ephemeral",
             text: `📊:rayfirmation: Rayfirmations Statistics\nTotal Shared: ${totalShared.toLocaleString()}\nAvailable Quotes: ${totalQuotes.toLocaleString()}`,
-            blocks: createStatsBlocks(userName, totalShared, totalQuotes),
+            blocks: createStatsBlocks(
+              userName,
+              totalShared,
+              totalQuotes,
+              lastQuotes
+            ),
             emoji: true,
           });
         }
