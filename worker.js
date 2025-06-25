@@ -167,7 +167,7 @@ export default {
           text: {
             type: "mrkdwn",
             text:
-              `:trophy:*Top 3 Rayfirmers:*
+              `*Top 3 Rayfirmers: :trophy:*
 ` +
               topRayfirmers
                 .map(
