@@ -6,6 +6,7 @@ A Cloudflare Worker that provides inspirational quotes from Ray via Slack slash 
 
 - **Slash Command**: `/rayfirmation` - Get a random inspirational quote from Ray
 - **Stats Command**: `/rayfirmation stats` - View usage statistics and available quotes
+- **Add Quote Command**: `/rayfirmation add "quote"` - Add a new rayfirmation to the database
 - **Interactive Buttons**:
   - 🎲 **Shuffle** - Get a different rayfirmation
   - 💫 **Rayfirm** - Share the rayfirmation with the entire channel
@@ -93,7 +94,7 @@ wrangler deploy
    - Command: `/rayfirmation`
    - Request URL: `https://your-worker.your-subdomain.workers.dev`
    - Short Description: "Get an inspirational quote from Ray"
-   - Usage Hint: "Just type /rayfirmation or /rayfirmation stats"
+   - Usage Hint: "Just type /rayfirmation, /rayfirmation stats, or /rayfirmation add \"quote\""
 
 5. **Configure Interactive Components**:
 
@@ -119,6 +120,21 @@ wrangler deploy
    - Total number of available quotes in the database
    - Formatted display with emojis and proper formatting
 
+### Adding New Quotes
+
+1. Type `/rayfirmation new` to see instructions
+2. Use the format: `/rayfirmation add "Your new quote here"`
+3. Example: `/rayfirmation add "You are absolutely amazing!"`
+4. The quote will be added to the database if it's unique
+5. You'll receive a confirmation message
+
+**Requirements for new quotes:**
+
+- Must be enclosed in quotes
+- Cannot be empty
+- Must be under 500 characters
+- Must be unique (not already in database)
+
 ### Response Types
 
 - **Ephemeral**: Initial responses are private to the user
@@ -139,10 +155,16 @@ The D1 database contains a single table:
 CREATE TABLE quotes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     text TEXT NOT NULL UNIQUE,
+    added_by_id TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 ```
+
+The `added_by_id` field tracks who added each quote:
+
+- `"system"` for the original quotes loaded from the schema
+- User ID for quotes added by users via the `/rayfirmation add` command
 
 ## Development
 
@@ -162,11 +184,17 @@ wrangler dev
 # View database contents
 wrangler d1 execute rayfirmations-db --command="SELECT * FROM quotes LIMIT 5;"
 
+# View quotes with contributors
+wrangler d1 execute rayfirmations-db --command="SELECT text, added_by_id, created_at FROM quotes ORDER BY created_at DESC LIMIT 10;"
+
 # Add new rayfirmation
-wrangler d1 execute rayfirmations-db --command="INSERT INTO quotes (text) VALUES ('Your new rayfirmation here!');"
+wrangler d1 execute rayfirmations-db --command="INSERT INTO quotes (text, added_by_id) VALUES ('Your new rayfirmation here!', 'your-user-id');"
 
 # Get total count
 wrangler d1 execute rayfirmations-db --command="SELECT COUNT(*) as total FROM quotes;"
+
+# Get count by contributor
+wrangler d1 execute rayfirmations-db --command="SELECT added_by_id, COUNT(*) as count FROM quotes GROUP BY added_by_id ORDER BY count DESC;"
 ```
 
 ### Testing

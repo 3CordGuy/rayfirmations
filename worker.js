@@ -102,6 +102,74 @@ export default {
       ];
     }
 
+    // Helper function to create new quote modal
+    function createNewQuoteModal(triggerId) {
+      return {
+        trigger_id: triggerId,
+        view: {
+          type: "modal",
+          title: {
+            type: "plain_text",
+            text: "Add New Rayfirmation",
+            emoji: true,
+          },
+          submit: {
+            type: "plain_text",
+            text: "Add Quote",
+            emoji: true,
+          },
+          close: {
+            type: "plain_text",
+            text: "Cancel",
+            emoji: true,
+          },
+          blocks: [
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: "Share a new inspirational quote from Ray to add to the collection! ✨",
+              },
+            },
+            {
+              type: "input",
+              block_id: "new_quote_input",
+              label: {
+                type: "plain_text",
+                text: "Rayfirmation Quote",
+                emoji: true,
+              },
+              element: {
+                type: "plain_text_input",
+                action_id: "quote_text",
+                placeholder: {
+                  type: "plain_text",
+                  text: "Enter the inspirational quote here...",
+                },
+                multiline: true,
+                max_length: 500,
+              },
+            },
+          ],
+        },
+      };
+    }
+
+    // Helper function to add new quote to database
+    async function addNewQuote(quoteText, addedByUserId) {
+      try {
+        const result = await env.RAYDB.prepare(
+          "INSERT INTO quotes (text, added_by_id) VALUES (?, ?)"
+        )
+          .bind(quoteText, addedByUserId)
+          .run();
+        return result.success;
+      } catch (error) {
+        console.error("Error adding new quote to D1:", error);
+        return false;
+      }
+    }
+
     // Helper function to create rayfirmation blocks
     function createRayfirmationBlocks(rayfirmation, userName, totalCount) {
       return [
@@ -160,12 +228,14 @@ export default {
           "interactionData",
           JSON.stringify(interactionData, null, 2)
         );
+
         // Handle Slack URL verification (rare for interactions, but just in case)
         if (interactionData.type === "url_verification") {
           return new Response(interactionData.challenge, {
             headers: { "Content-Type": "text/plain" },
           });
         }
+
         // Handle interactive messages (button clicks)
         if (
           interactionData.type === "interactive_message" ||
@@ -244,6 +314,7 @@ export default {
         console.log("IS INITIAL COMMAND REQUEST");
         // Slash command
         const userName = formData.get("user_name") || "teammate";
+        const userId = formData.get("user_id") || "unknown";
         const text = formData.get("text") || "";
 
         // Handle Slack's URL verification challenge (only needed during setup)
@@ -252,6 +323,54 @@ export default {
           return new Response(challenge, {
             headers: { "Content-Type": "text/plain" },
           });
+        }
+
+        // Check if user wants to add a new quote
+        if (text.trim().toLowerCase() === "new") {
+          return Response.json({
+            response_type: "ephemeral",
+            text: '🤖 To add a new rayfirmation, please use the format:\n`/rayfirmation add "Your new quote here"`\n\nExample: `/rayfirmation add "You are absolutely amazing!"`',
+          });
+        }
+
+        // Check if user wants to add a new quote with the quote
+        if (text.trim().toLowerCase().startsWith("add ")) {
+          const quoteMatch = text.match(/^add\s+"([^"]+)"$/i);
+          if (!quoteMatch) {
+            return Response.json({
+              response_type: "ephemeral",
+              text: '🤖 Please use the correct format:\n`/rayfirmation add "Your new quote here"`\n\nMake sure to include the quotes around your text!',
+            });
+          }
+
+          const newQuote = quoteMatch[1].trim();
+          if (newQuote.length === 0) {
+            return Response.json({
+              response_type: "ephemeral",
+              text: "🤖 Please enter a valid quote. The quote cannot be empty.",
+            });
+          }
+
+          if (newQuote.length > 500) {
+            return Response.json({
+              response_type: "ephemeral",
+              text: "🤖 Quote is too long. Please keep it under 500 characters.",
+            });
+          }
+
+          const success = await addNewQuote(newQuote, userId);
+
+          if (success) {
+            return Response.json({
+              response_type: "ephemeral",
+              text: `✅ Successfully added new rayfirmation!\n\n"${newQuote}"\n\nThank you for contributing to the collection! ✨`,
+            });
+          } else {
+            return Response.json({
+              response_type: "ephemeral",
+              text: "❌ Failed to add the quote. It might already exist in the database, or there was an error. Please try again.",
+            });
+          }
         }
 
         // Check if user wants stats
