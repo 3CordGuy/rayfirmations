@@ -79,12 +79,57 @@ export default {
       }
     }
 
+    // Helper function to log a rayfirm share
+    async function logRayfirmShare(userId) {
+      try {
+        await env.RAYDB.prepare(
+          "INSERT INTO command_log (user_id, created_at) VALUES (?, datetime('now', 'utc'))"
+        )
+          .bind(userId)
+          .run();
+      } catch (error) {
+        console.error("Error logging rayfirm share:", error);
+      }
+    }
+
+    // Helper function to get total rayfirm shares from command_log
+    async function getTotalRayfirmShares() {
+      try {
+        const result = await env.RAYDB.prepare(
+          "SELECT COUNT(*) as count FROM command_log"
+        ).first();
+        return result ? result.count : 0;
+      } catch (error) {
+        console.error(
+          "Error getting total rayfirm shares from command_log:",
+          error
+        );
+        return 0;
+      }
+    }
+
+    // Helper function to get top 3 Rayfirmers
+    async function getTopRayfirmers(limit = 3) {
+      try {
+        const results = await env.RAYDB.prepare(
+          `SELECT user_id, COUNT(*) as count FROM command_log GROUP BY user_id ORDER BY count DESC LIMIT ?`
+        )
+          .bind(limit)
+          .all();
+        return results.results || [];
+      } catch (error) {
+        console.error("Error getting top Rayfirmers from command_log:", error);
+        return [];
+      }
+    }
+
     // Helper function to create stats blocks
     function createStatsBlocks(
       userName,
       totalShared,
       totalQuotes,
-      lastQuotes = []
+      lastQuotes = [],
+      topRayfirmers = []
     ) {
       const blocks = [
         {
@@ -101,16 +146,38 @@ export default {
             {
               type: "mrkdwn",
               text:
-                "*Total Rayfirmations Shared:*\n" +
-                totalShared.toLocaleString(),
+                "*Total Rayfirmations Shared:* :chart_with_upwards_trend:\n`" +
+                totalShared.toLocaleString() +
+                "`",
             },
             {
               type: "mrkdwn",
-              text: "*Available Quotes:*\n" + totalQuotes.toLocaleString(),
+              text:
+                "*Available Quotes:* :rayfirmation:\n`" +
+                totalQuotes.toLocaleString() +
+                "`",
             },
           ],
         },
       ];
+
+      if (topRayfirmers.length) {
+        blocks.push({
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text:
+              `:trophy:*Top 3 Rayfirmers:*
+` +
+              topRayfirmers
+                .map(
+                  (u, i) =>
+                    `${i + 1}. <@${u.user_id}> — ${u.count} encouragements`
+                )
+                .join("\n"),
+          },
+        });
+      }
 
       if (lastQuotes.length) {
         blocks.push({
@@ -120,7 +187,7 @@ export default {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: "*Last 5 Added Rayfirmations:*",
+            text: "*Last 5 Added Rayfirmations:* :new:",
           },
         });
         lastQuotes.forEach((q, i) => {
@@ -135,6 +202,15 @@ export default {
           });
         });
       }
+
+      // Add instructions block
+      blocks.push({
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: ':bulb: *To add a new rayfirmation, use:* `/rayfirmation add "Ray quote here"`',
+        },
+      });
 
       blocks.push({
         type: "context",
@@ -266,8 +342,8 @@ export default {
             // Share the current rayfirmation with everyone
             const currentRayfirmation = action.value;
 
-            // Increment the total count
-            const newTotalCount = await incrementTotalCount();
+            // Log the share in command_log
+            await logRayfirmShare(interactionData.user.id);
 
             // Use the response_url to post in-channel
             await fetch(interactionData.response_url, {
@@ -389,18 +465,20 @@ export default {
 
         // Check if user wants stats
         if (text.trim().toLowerCase() === "stats") {
-          const totalShared = await getTotalCount();
+          const totalShared = await getTotalRayfirmShares();
           const totalQuotes = await getRayfirmationsCount();
           const lastQuotes = await getLastQuotesWithContributors(5);
+          const topRayfirmers = await getTopRayfirmers(3);
 
           return Response.json({
             response_type: "ephemeral",
-            text: `📊:rayfirmation: Rayfirmations Statistics\nTotal Shared: ${totalShared.toLocaleString()}\nAvailable Quotes: ${totalQuotes.toLocaleString()}`,
+            text: `📊 Rayfirmations Statistics\nTotal Shared: ${totalShared.toLocaleString()}\nAvailable Quotes: ${totalQuotes.toLocaleString()}`,
             blocks: createStatsBlocks(
               userName,
               totalShared,
               totalQuotes,
-              lastQuotes
+              lastQuotes,
+              topRayfirmers
             ),
             emoji: true,
           });
