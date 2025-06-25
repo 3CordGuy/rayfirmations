@@ -94,13 +94,19 @@ wrangler deploy
    - Command: `/rayfirmation`
    - Request URL: `https://your-worker.your-subdomain.workers.dev`
    - Short Description: "Get an inspirational quote from Ray"
-   - Usage Hint: "Just type /rayfirmation, /rayfirmation stats, or /rayfirmation add \"quote\""
+   - Usage Hint: "Just type /rayfirmation, /rayfirmation stats, or /rayfirmation new"
 
 5. **Configure Interactive Components**:
 
    - Request URL: `https://your-worker.your-subdomain.workers.dev`
 
-6. **Install App to Workspace**
+6. **Add Required Scopes** (in OAuth & Permissions):
+
+   - `commands` - For slash commands
+   - `chat:write` - For posting messages
+   - `users:read` - For user information
+
+7. **Install App to Workspace**
 
 ## Usage
 

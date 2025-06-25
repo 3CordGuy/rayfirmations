@@ -1,4 +1,5 @@
 -- Rayfirmations D1 Database Schema
+-- Quotes should be stored WITHOUT any surrounding straight or curly quotes (handled in code)
 -- This file contains the SQL schema for storing rayfirmation quotes
 
 -- Create the quotes table
@@ -7,13 +8,15 @@ CREATE TABLE IF NOT EXISTS quotes (
     text TEXT NOT NULL UNIQUE,
     added_by_id TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    added_at DATETIME
 );
 
 -- Create an index on the text for faster lookups
 CREATE INDEX IF NOT EXISTS idx_quotes_text ON quotes(text);
 
 -- Insert all the rayfirmation quotes
+-- All quotes below are stored without surrounding quotes (code strips both straight and curly quotes)
 INSERT OR IGNORE INTO quotes (text, added_by_id) VALUES
     ("Wow! Everything you do turns to gold!✨", "system"),
     ("Wow! You are looking awesome today.", "system"),

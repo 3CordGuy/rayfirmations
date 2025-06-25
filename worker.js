@@ -133,21 +133,21 @@ export default {
             },
             {
               type: "input",
-              block_id: "new_quote_input",
-              label: {
-                type: "plain_text",
-                text: "Rayfirmation Quote",
-                emoji: true,
-              },
+              block_id: "quote_input",
               element: {
                 type: "plain_text_input",
                 action_id: "quote_text",
                 placeholder: {
                   type: "plain_text",
-                  text: "Enter the inspirational quote here...",
+                  text: "Enter your rayfirmation here...",
                 },
                 multiline: true,
                 max_length: 500,
+              },
+              label: {
+                type: "plain_text",
+                text: "Rayfirmation",
+                emoji: true,
               },
             },
           ],
@@ -159,7 +159,7 @@ export default {
     async function addNewQuote(quoteText, addedByUserId) {
       try {
         const result = await env.RAYDB.prepare(
-          "INSERT INTO quotes (text, added_by_id) VALUES (?, ?)"
+          "INSERT INTO quotes (text, added_by_id, added_at) VALUES (?, ?, datetime('now', 'utc'))"
         )
           .bind(quoteText, addedByUserId)
           .run();
@@ -335,21 +335,39 @@ export default {
 
         // Check if user wants to add a new quote with the quote
         if (text.trim().toLowerCase().startsWith("add ")) {
-          const quoteMatch = text.match(/^add\s+"([^"]+)"$/i);
-          if (!quoteMatch) {
-            return Response.json({
-              response_type: "ephemeral",
-              text: '🤖 Please use the correct format:\n`/rayfirmation add "Your new quote here"`\n\nMake sure to include the quotes around your text!',
-            });
+          console.log("text", text);
+
+          // More flexible quote parsing - handle different quote formats
+          const addText = text.substring(4).trim(); // Remove "add " prefix
+          console.log("addText", addText);
+
+          let newQuote = "";
+
+          // Try to extract quote from various formats
+          if (addText.startsWith('"') && addText.endsWith('"')) {
+            // Format: add "quote"
+            newQuote = addText.slice(1, -1);
+          } else if (addText.startsWith("'") && addText.endsWith("'")) {
+            // Format: add 'quote'
+            newQuote = addText.slice(1, -1);
+          } else if (addText.includes('"')) {
+            // Format: add "quote with spaces
+            const firstQuote = addText.indexOf('"');
+            const lastQuote = addText.lastIndexOf('"');
+            if (firstQuote !== lastQuote) {
+              newQuote = addText.substring(firstQuote + 1, lastQuote);
+            }
+          } else {
+            // No quotes found, treat the whole text as the quote
+            newQuote = addText;
           }
 
-          const newQuote = quoteMatch[1].trim();
-          if (newQuote.length === 0) {
-            return Response.json({
-              response_type: "ephemeral",
-              text: "🤖 Please enter a valid quote. The quote cannot be empty.",
-            });
+          // If extraction failed or resulted in empty string, use the whole addText
+          if (!newQuote || newQuote.trim().length === 0) {
+            newQuote = addText;
           }
+
+          console.log("newQuote", newQuote);
 
           if (newQuote.length > 500) {
             return Response.json({
@@ -358,12 +376,17 @@ export default {
             });
           }
 
-          const success = await addNewQuote(newQuote, userId);
+          const cleanedQuote = newQuote.replace(/["'“”‘’]/g, "").trim();
+          console.log("Original newQuote:", newQuote);
+          console.log("Cleaned quote (removing quotes):", cleanedQuote);
+          console.log("Storing quote in database:", cleanedQuote);
+          const success = await addNewQuote(cleanedQuote, userId);
 
           if (success) {
             return Response.json({
               response_type: "ephemeral",
-              text: `✅ Successfully added new rayfirmation!\n\n"${newQuote}"\n\nThank you for contributing to the collection! ✨`,
+              text: `✅ Successfully added new rayfirmation!\n\n>${newQuote}\n\n:rayfirmation:Thank you for contributing to the collection! ✨`,
+              emoji: true,
             });
           } else {
             return Response.json({
@@ -380,8 +403,9 @@ export default {
 
           return Response.json({
             response_type: "ephemeral",
-            text: `📊 Rayfirmations Statistics\nTotal Shared: ${totalShared.toLocaleString()}\nAvailable Quotes: ${totalQuotes.toLocaleString()}`,
+            text: `📊:rayfirmation: Rayfirmations Statistics\nTotal Shared: ${totalShared.toLocaleString()}\nAvailable Quotes: ${totalQuotes.toLocaleString()}`,
             blocks: createStatsBlocks(userName, totalShared, totalQuotes),
+            emoji: true,
           });
         }
 
