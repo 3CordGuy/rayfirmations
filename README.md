@@ -5,6 +5,7 @@ A Cloudflare Worker that provides inspirational quotes from Ray via Slack slash 
 ## Features
 
 - **Slash Command**: `/rayfirmation` - Get a random inspirational quote from Ray
+- **Stats Command**: `/rayfirmation stats` - View usage statistics and available quotes
 - **Interactive Buttons**:
   - 🎲 **Shuffle** - Get a different rayfirmation
   - 💫 **Rayfirm** - Share the rayfirmation with the entire channel
@@ -92,6 +93,7 @@ wrangler deploy
    - Command: `/rayfirmation`
    - Request URL: `https://your-worker.your-subdomain.workers.dev`
    - Short Description: "Get an inspirational quote from Ray"
+   - Usage Hint: "Just type /rayfirmation or /rayfirmation stats"
 
 5. **Configure Interactive Components**:
 
@@ -108,6 +110,14 @@ wrangler deploy
 3. Use the buttons to:
    - **Shuffle**: Get a different quote
    - **Rayfirm**: Share the quote with everyone in the channel
+
+### Statistics
+
+1. Type `/rayfirmation stats` to view usage statistics
+2. You'll see:
+   - Total number of rayfirmations shared
+   - Total number of available quotes in the database
+   - Formatted display with emojis and proper formatting
 
 ### Response Types
 

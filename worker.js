@@ -64,6 +64,44 @@ export default {
       }
     }
 
+    // Helper function to create stats blocks
+    function createStatsBlocks(userName, totalShared, totalQuotes) {
+      return [
+        {
+          type: "header",
+          text: {
+            type: "plain_text",
+            text: "📊 Rayfirmations Statistics",
+            emoji: true,
+          },
+        },
+        {
+          type: "section",
+          fields: [
+            {
+              type: "mrkdwn",
+              text:
+                "*Total Rayfirmations Shared:*\n" +
+                totalShared.toLocaleString(),
+            },
+            {
+              type: "mrkdwn",
+              text: "*Available Quotes:*\n" + totalQuotes.toLocaleString(),
+            },
+          ],
+        },
+        {
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: `Requested by @${userName}`,
+            },
+          ],
+        },
+      ];
+    }
+
     // Helper function to create rayfirmation blocks
     function createRayfirmationBlocks(rayfirmation, userName, totalCount) {
       return [
@@ -206,12 +244,25 @@ export default {
         console.log("IS INITIAL COMMAND REQUEST");
         // Slash command
         const userName = formData.get("user_name") || "teammate";
+        const text = formData.get("text") || "";
 
         // Handle Slack's URL verification challenge (only needed during setup)
         const challenge = formData.get("challenge");
         if (challenge) {
           return new Response(challenge, {
             headers: { "Content-Type": "text/plain" },
+          });
+        }
+
+        // Check if user wants stats
+        if (text.trim().toLowerCase() === "stats") {
+          const totalShared = await getTotalCount();
+          const totalQuotes = await getRayfirmationsCount();
+
+          return Response.json({
+            response_type: "ephemeral",
+            text: `📊 Rayfirmations Statistics\nTotal Shared: ${totalShared.toLocaleString()}\nAvailable Quotes: ${totalQuotes.toLocaleString()}`,
+            blocks: createStatsBlocks(userName, totalShared, totalQuotes),
           });
         }
 
